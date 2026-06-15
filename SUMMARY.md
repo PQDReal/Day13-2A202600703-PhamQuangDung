@@ -21,7 +21,7 @@ Ban đầu chạy Windows binary bị lỗi:
 Failed to load Python DLL ... python312.dll
 ```
 
-Cách xử lý là chuyển sang WSL và dùng đúng Linux binary `observathon-sim`. Sau đó có một số run `0 correct` do API key sai hoặc fallback thành `sk-none`; log cho thấy `AuthenticationError`. Vì vậy trước khi chạy simulator cần kiểm tra `OPENAI_API_KEY`.
+Cách xử lý là chuyển sang WSL và dùng đúng Linux binary `observathon-sim`. Sau đó có một số run `0 correct` do API key sai hoặc fallback thành placeholder API key; log cho thấy `AuthenticationError`. Vì vậy trước khi chạy simulator cần kiểm tra `OPENAI_API_KEY`.
 
 ## Public sim
 
