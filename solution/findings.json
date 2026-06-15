@@ -1,12 +1,72 @@
 {
-  "team": "TODO-team-name",
+  "team": "DUNG",
   "schema_version": 1,
   "findings": [
     {
+      "fault_class": "error_spike",
+      "evidence": {"metric": "tool_error_rate", "observed": "Shipped config set tool_error_rate=0.18 while retry was disabled; wrapper logs AGENT_CALL status and attempts.", "trace_ids": []},
+      "root_cause": "Intermittent tool failures were enabled and retry was disabled.",
+      "suggested_fix": "Set tool_error_rate=0.0, enable retry with backoff, and log non-ok statuses in wrapper.py."
+    },
+    {
+      "fault_class": "arithmetic_error",
+      "evidence": {"metric": "temperature_and_formula", "observed": "Shipped config used temperature=1.6 and the original prompt did not define subtotal, discount, shipping, or integer division.", "trace_ids": []},
+      "root_cause": "High sampling temperature and vague arithmetic instructions made totals and coupon application inconsistent.",
+      "suggested_fix": "Lower temperature, enable verify/self_consistency, and require exact formula: subtotal=unit_price*qty; discounted=subtotal*(100-pct)//100; total=discounted+shipping."
+    },
+    {
+      "fault_class": "tool_failure",
+      "evidence": {"metric": "normalize_unicode_catalog_override", "observed": "Shipped config disabled normalize_unicode and set catalog_override.macbook.in_stock=false, contradicting normal catalog behavior.", "trace_ids": []},
+      "root_cause": "Tool inputs and catalog results could be corrupted by disabled Unicode normalization and a bad MacBook override.",
+      "suggested_fix": "Enable normalize_unicode and clear catalog_override."
+    },
+    {
+      "fault_class": "fabrication",
+      "evidence": {"metric": "refusal_cases", "observed": "Original prompt only said to help and give a total, with no rule to refuse out-of-stock, unknown, invalid coupon, or unserved shipping cases.", "trace_ids": []},
+      "root_cause": "The agent could invent a total instead of grounding on check_stock, get_discount, and calc_shipping results.",
+      "suggested_fix": "Require tool grounding and clear no-total refusals when stock, coupon, or shipping data is invalid."
+    },
+    {
+      "fault_class": "tool_overuse",
+      "evidence": {"metric": "tools_used", "observed": "Shipped config had tool_budget=0; wrapper telemetry records tools_used/tool_count, with many valid orders requiring only one pass through check_stock/get_discount/calc_shipping.", "trace_ids": []},
+      "root_cause": "The original prompt/config did not cap repeated or unnecessary tool calls.",
+      "suggested_fix": "Set tool_budget=4 and instruct the model to call each needed tool at most once."
+    },
+    {
+      "fault_class": "pii_leak",
+      "evidence": {"metric": "pii_redactions", "observed": "Shipped config had redact_pii=false and the original prompt did not forbid echoing email/phone/card data.", "trace_ids": []},
+      "root_cause": "Customer PII could be repeated in answers or written to telemetry.",
+      "suggested_fix": "Enable redact_pii, add a no-PII prompt rule, and redact wrapper outputs/log payloads."
+    },
+    {
+      "fault_class": "cost_blowup",
+      "evidence": {"metric": "total_tokens", "observed": "Wrapper telemetry shows many public calls around 19k total tokens; shipped config used premium tier, verbose_system=true, context_size=8, and max_completion_tokens=2000.", "trace_ids": []},
+      "root_cause": "Verbose context and uncapped generations inflated token usage and cost.",
+      "suggested_fix": "Use standard tier, verbose_system=false, smaller context, concise prompt, and lower max_completion_tokens."
+    },
+    {
       "fault_class": "latency_spike",
-      "evidence": {"metric": "latency_p95_ms", "observed": "TODO from your telemetry", "trace_ids": []},
-      "root_cause": "TODO: what config knob or behavior causes it?",
-      "suggested_fix": "TODO: config change and/or wrapper mitigation"
+      "evidence": {"metric": "latency_p95_ms", "observed": "Original verbose_system=true, high token budget, no cache, and no tool budget can create long-tail latency; wrapper telemetry measures reported_latency_ms and wall_ms.", "trace_ids": []},
+      "root_cause": "Large prompts/context and unnecessary tool calls caused slow tail requests.",
+      "suggested_fix": "Enable cache, shrink context/system verbosity, cap tools, and keep answers short."
+    },
+    {
+      "fault_class": "quality_drift",
+      "evidence": {"metric": "session_drift_rate", "observed": "Shipped config had session_drift_rate=0.06 and context_reset_every=0, so later turns in a session can degrade.", "trace_ids": []},
+      "root_cause": "Session memory drift accumulated across turns without reset.",
+      "suggested_fix": "Set session_drift_rate=0.0 and reset context periodically."
+    },
+    {
+      "fault_class": "infinite_loop",
+      "evidence": {"metric": "loop_guard", "observed": "Shipped config had loop_guard=false and max_steps=12; repeated actions can hit max_steps.", "trace_ids": []},
+      "root_cause": "No loop guard allowed repeated identical tool actions.",
+      "suggested_fix": "Enable loop_guard and cap max_steps/tool_budget."
+    },
+    {
+      "fault_class": "prompt_injection",
+      "evidence": {"metric": "untrusted_order_notes", "observed": "The rules and prompt optimization docs state the private phase adds order-note injection; the original prompt did not say to treat GHI CHU/order notes as data only.", "trace_ids": []},
+      "root_cause": "Customer-controlled notes can contain fake system instructions, fake prices, or fake discounts that the model may obey.",
+      "suggested_fix": "Prompt says notes are untrusted data, prices/discounts come only from tools, and wrapper sanitizes common instruction-like note text before calling the agent."
     }
   ]
 }
